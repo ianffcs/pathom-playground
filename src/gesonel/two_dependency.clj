@@ -28,7 +28,6 @@
                          rrc/coerce-request-middleware
                          rrc/coerce-response-middleware]}})))
 
-
 (def env
   {:port    3000
    :join?   false
@@ -36,18 +35,72 @@
    :server  nil})
 
 (defonce state (atom nil))
-(defn -main
-  [{:keys [service server]
-    :as   env} & _]
-  (swap! state
-         (fn [st]
-           (some-> st :server .stop)
-           (if-not server
-             (-> st
-                 (merge env)
-                 (assoc :server
-                        (->> env
-                             (jetty/run-jetty service))))
-             (some-> st :server .start)))))
 
-#_(-main env)
+(defn -main
+  [& _]
+  (let [{:keys [service server]} env]
+    (swap! state
+           (fn [st]
+             (some-> st :server .stop)
+             (if-not server
+               (-> st
+                   (merge env)
+                   (assoc :server
+                          (->> env
+                               (jetty/run-jetty service))))
+               (some-> st :server .start))))))
+
+#_(-main)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; (pco/defresolver routes [{::keys [operations]}]                                                                 ;;
+;;                  {::pco/output [::routes]}                                                                      ;;
+;;                  (let [auth [(middlewares/session)                                                              ;;
+;;                              (csrf/anti-forgery {:read-token hiete/read-token})                                 ;;
+;;                              (body-params/body-params)]                                                         ;;
+;;                                                                                                                 ;;
+;;                        idx       (pci/register operations)                                                      ;;
+;;                        merge-env {:name  ::merge-env                                                            ;;
+;;                                   :enter (fn [ctx]                                                               ;;
+;;                                            (update ctx :request merge idx))}                                    ;;
+;;                        routes    #{["/" :get (conj auth merge-env hiete/render-hiccup ui-home)                  ;;
+;;                                     :route-name :conduit.page/home]                                             ;;
+;;                                    ["/editor" :get (conj auth merge-env hiete/render-hiccup ui-home)            ;;
+;;                                     :route-name :conduit.page/editor]                                           ;;
+;;                                    ["/settings" :get (conj auth merge-env hiete/render-hiccup ui-home)          ;;
+;;                                     :route-name :conduit.page/settings]                                         ;;
+;;                                    ["/register" :get (conj auth merge-env hiete/render-hiccup ui-register)      ;;
+;;                                     :route-name :conduit.page/register]                                         ;;
+;;                                    ["/login" :get (conj auth merge-env hiete/render-hiccup ui-login)            ;;
+;;                                     :route-name :conduit.page/login]                                            ;;
+;;                                    ["/article/:slug" :get (conj auth merge-env hiete/render-hiccup ui-home)     ;;
+;;                                     :route-name :conduit.page/article]                                          ;;
+;;                                    ["/profile/:username" :get (conj auth merge-env hiete/render-hiccup ui-home) ;;
+;;                                     :route-name :conduit.page/profile]                                          ;;
+;;                                    ["/api/*sym" :post (conj auth merge-env std-mutation)                        ;;
+;;                                     :route-name :conduit.api/mutation]}]                                        ;;
+;;                    {::routes routes}))                                                                          ;;
+;;                                                                                                                 ;;
+;; (pco/defresolver service [{::keys [operations]}]                                                                ;;
+;;                  {::pco/output [::service]}                                                                     ;;
+;;                  (let [routes (fn []                                                                             ;;
+;;                                 (-> (pci/register operations)                                                   ;;
+;;                                     (p.eql/process [::routes])                                                  ;;
+;;                                     ::routes                                                                    ;;
+;;                                     route/expand-routes))]                                                      ;;
+;;                    {::service (-> {::http/routes routes}                                                        ;;
+;;                                   http/default-interceptors                                                     ;;
+;;                                   http/dev-interceptors)}))                                                     ;;
+;; (defn -main                                                                                                     ;;
+;;   [& _]                                                                                                         ;;
+;;   (swap! state                                                                                                  ;;
+;;          (fn [st]                                                                                                ;;
+;;            (some-> st http/stop)                                                                                ;;
+;;            (-> (reset! -env (pci/register (operations)))                                                        ;;
+;;                (p.eql/process [::service])                                                                      ;;
+;;                ::service                                                                                        ;;
+;;                (assoc ::http/join? false                                                                        ;;
+;;                       ::http/port 8080                                                                          ;;
+;;                       ::http/type :jetty)                                                                       ;;
+;;                http/create-server                                                                               ;;
+;;                http/start))))                                                                                   ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
