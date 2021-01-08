@@ -1,7 +1,7 @@
 {:paths   ["src"]
  :deps    {com.wsscode/pathom3              {:git/url "https://github.com/wilkerlucio/pathom3"
-                                             :sha     "4bd43904f9f996d5317f39718f2010816125bbdc"}
-           com.wsscode/pathom               {:mvn/version "2.3.0-alpha17"}
+                                             :sha     "9ec19441a028c637a0d344460d1d4cf43b48d215"}
+           com.wsscode/pathom               {:mvn/version "2.3.0"}
            cheshire/cheshire                {:mvn/version "5.10.0"}
            org.clojure/clojure              {:mvn/version "1.10.0"}
            nubank/matcher-combinators       {:mvn/version "3.1.4"}
