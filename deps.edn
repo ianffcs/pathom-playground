@@ -19,5 +19,6 @@
            org.hsqldb/hsqldb                {:mvn/version "2.5.1"}
            seancorfield/next.jdbc           {:mvn/version "1.1.613"}
            honeysql/honeysql                {:mvn/version "1.0.444"}
-           metosin/jsonista                 {:mvn/version "0.3.0"}}
+           metosin/jsonista                 {:mvn/version "0.3.0"}
+           ring/ring-defaults               {:mvn/version "0.3.2"}}
  :aliases {:ip-weather {:exec-fn gesonel.core/main}}}
