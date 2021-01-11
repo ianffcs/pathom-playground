@@ -41,10 +41,9 @@
                                             [:x int?]
                                             [:y int?]]}
                        :responses  {200 {:body [:map [:total pos-int?]]}}
-                       :handler    (fn [{{{:keys [x y]} :query} :parameters :as req}]
-                                     (clojure.pprint/pprint req)
+                       :handler    (fn [{{{:keys [x y]} :query} :parameters}]
                                      {:status 200
-                                      :body   {:total x}})}
+                                      :body   {:total (+ x y)}})}
                 :post {:parameters {:body [:map
                                            [:x int?]
                                            [:y int?]]}
@@ -55,7 +54,6 @@
       ["/number" {:interceptors [(interceptor-n 10)]
                   :get          {:interceptors [(interceptor-n 100)]
                                  :handler      (fn [req]
-                                                 (clojure.pprint/pprint (select-keys req [:number]))
                                                  {:status 200
                                                   :body   (select-keys req [:number])})}}]]]
     {:exception    pretty/exception
