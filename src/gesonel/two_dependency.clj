@@ -34,7 +34,7 @@
              :swagger {:info     {:title "my-api"}
                        :basePath "/"}
              :handler (swagger/create-swagger-handler)}}]
-     ["/api"
+     ["/api" {:interceptors [(interceptor-n 42)]}
       ["/ping" {:get {:handler (constantly {:status 200, :body "ping"})}}]
       ["/pong" {:post {:handler (constantly {:status 200, :body "pong"})}}]
       ["/math" {:get  {:parameters {:query [:map
