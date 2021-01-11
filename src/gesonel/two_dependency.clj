@@ -99,20 +99,27 @@
    :dbtype "hsqldb"
    :dbname "example"})
 
+(defn restart-db [env st]
+  (some-> st :db/connection .close)
+  (some-> st dissoc :db/datasource)
+  (let [ds (jdbc/get-datasource env)
+        connection (jdbc/get-connection ds)]
+    (merge st {:db/datasource ds
+               :db/connection connection})))
+
 (defn restart-http [{:keys [service server]} st]
-  (some-> st :server .stop)
+  (some-> st :http/server .stop)
   (if-not server
-    (-> st
-        (merge env)
-        (assoc :server
-               (->> env
-                    (jetty/run-jetty service))))
-    (some-> st :server .start)))
+    (assoc st :http/server
+           (->> env
+                (jetty/run-jetty service)))
+    (some-> st :http/server .start)))
 
 (defonce state (atom nil))
 
 (defn -main
   [& _]
+  (swap! state (partial restart-db env))
   (swap! state (partial restart-http env)))
 
 #_((@state :service) {:request-method :get
