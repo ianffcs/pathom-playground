@@ -1,25 +1,20 @@
 (ns gesonel.two-dependency
-  (:require
-   [com.wsscode.pathom.core :as p]
-   [com.wsscode.pathom.connect :as pc]
-   [clojure.core.async :refer [<!!]]
-   [jsonista.core :as json]
-   [clojure.edn :as  edn]
-   [clojure.string :as str]
-   [reitit.coercion.malli :as rcm]
-   [reitit.dev.pretty :as pretty]
-   [reitit.interceptor.sieppari :as sieppari]
-   [reitit.http :as http]
-   [reitit.ring :as ring]
-   [reitit.ring.coercion :as rrc]
-   [reitit.swagger :as swagger]
-   [reitit.swagger-ui :as swagger-ui]
-   [reitit.ring.middleware.muuntaja :as muuntaja]
-   [muuntaja.interceptor]
-   [reitit.ring.middleware.parameters :as parameters]
-   [ring.adapter.jetty :as jetty]
-   [muuntaja.core :as m]))
-
+  (:require [muuntaja.core :as m]
+            [muuntaja.interceptor :as minterceptor]
+            [reitit.coercion.malli :as rcm]
+            [reitit.dev.pretty :as pretty]
+            [reitit.http :as http]
+            [reitit.interceptor.sieppari :as sieppari]
+            [reitit.ring :as ring]
+            [reitit.ring.coercion :as rrc]
+            [reitit.ring.middleware.muuntaja :as muuntaja]
+            [reitit.ring.middleware.parameters :as parameters]
+            [reitit.swagger :as swagger]
+            [reitit.swagger-ui :as swagger-ui]
+            [ring.adapter.jetty :as jetty]
+            [next.jdbc :as jdbc]
+            [honeysql.core :as sql]
+            [cheshire.core :as json]))
 (defn interceptor [number]
   {:enter (fn [ctx] (update-in ctx [:request :number] (fnil + 0) number))})
 
@@ -31,11 +26,12 @@
              :swagger {:info {:title "my-api"}
                        :basePath "/"}
              :handler (swagger/create-swagger-handler)}}]
-     "/api" ["/number" {:interceptors [(interceptor 10)]
-                        :get          {:interceptors [(interceptor 100)]
-                                       :handler      (fn [req]
-                                                       {:status 200
-                                                        :body   (select-keys req [:number])})}}]])
+     ["/api" {:interceptors [(interceptor 42)]}
+      ["/number" {:interceptors [(interceptor 10)]
+                  :get          {:interceptors [(interceptor 100)]
+                                 :handler      (fn [req]
+                                                 {:status 200
+                                                  :body   (select-keys req [:number])})}}]]])
 
    (ring/routes
     (swagger-ui/create-swagger-ui-handler
@@ -46,8 +42,8 @@
 
    {:executor reitit.interceptor.sieppari/executor
     :interceptors [swagger/swagger-feature
-                   (muuntaja.interceptor/format-interceptor)
-                   (muuntaja.interceptor/format-response-interceptor)]}))
+                   (minterceptor/format-interceptor)
+                   (minterceptor/format-response-interceptor)]}))
 
 (def app2
   (ring/ring-handler
@@ -119,5 +115,9 @@
 
 #_((@state :service) {:request-method :get
                       :uri            "/"})
+#_(->  {:request-method :get
+        :uri            "/api/number"}
+       ((@state :service))
+       (update :body (comp #(json/parse-string % true) slurp)))
 
 (-main)
