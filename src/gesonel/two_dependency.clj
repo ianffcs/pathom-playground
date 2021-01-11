@@ -95,7 +95,10 @@
   {:port    3000
    :join?   false
    :service #'app
-   :server  nil})
+   :server  nil
+   :dbtype "hsqldb"
+   :dbname "example"})
+
 (defn restart-http [{:keys [service server]} st]
   (some-> st :server .stop)
   (if-not server
