@@ -96,22 +96,21 @@
    :join?   false
    :service #'app
    :server  nil})
+(defn restart-http [{:keys [service server]} st]
+  (some-> st :server .stop)
+  (if-not server
+    (-> st
+        (merge env)
+        (assoc :server
+               (->> env
+                    (jetty/run-jetty service))))
+    (some-> st :server .start)))
 
 (defonce state (atom nil))
 
 (defn -main
   [& _]
-  (let [{:keys [service server]} env]
-    (swap! state
-           (fn [st]
-             (some-> st :server .stop)
-             (if-not server
-               (-> st
-                   (merge env)
-                   (assoc :server
-                          (->> env
-                               (jetty/run-jetty service))))
-               (some-> st :server .start))))))
+  (swap! state (partial restart-http env)))
 
 #_((@state :service) {:request-method :get
                       :uri            "/"})
