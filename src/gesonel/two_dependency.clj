@@ -16,8 +16,8 @@
             [next.jdbc :as jdbc]
             [honeysql.core :as sql]
             [cheshire.core :as json]
-            [com.wsscode.pathom.connect :as pc]
-            [com.wsscode.pathom.core :as p]))
+            [integrant.core :as ig]))
+
 (defn interceptor-n [number]
   {:enter (fn [ctx]
             (update-in ctx [:request :number] (fnil + 0) number))})
@@ -85,36 +85,110 @@
    :dbtype "hsqldb"
    :dbname "example"})
 
-(defn restart-db [env st]
-  (some-> st :db/connection .close)
-  (some-> st dissoc :db/datasource)
-  (let [ds (jdbc/get-datasource env)
-        connection (jdbc/get-connection ds)]
-    (merge st {:db/datasource ds
-               :db/connection connection})))
+(def config
+  {::db {:dbtype "hsqldb"
+         :dbname "example"}
+   ::http {:handler (ig/ref ::db)
+           :port 3000
+           :join? false
+           :service #'app}})
 
-(defn restart-http [{:keys [service server]} st]
-  (some-> st :http/server .stop)
-  (if-not server
-    (assoc st
-           :http/service service
-           :http/server
-           (->> env
-                (jetty/run-jetty service)))
-    (some-> st :http/server .start)))
+(defmethod ig/init-key ::db
+  [_ env]
+  (let [ds (jdbc/get-datasource env)]
+    (assoc env
+           :datasource ds
+           :connection (jdbc/get-connection ds))))
+
+(defmethod ig/halt-key! ::db
+  [this env]
+  (some-> env :db/connection .close))
+
+(defmethod ig/init-key ::http
+  [this {:keys [service] :as env}]
+  (assoc env
+         :http/server (jetty/run-jetty service env)))
+
+(defmethod ig/halt-key! ::http
+  [this env]
+  (some-> env :http/server .stop))
 
 (defonce state (atom nil))
 
+(defn stop! [state]
+  (swap! state
+         (fn [{:keys [system] :as env}]
+           (when system
+             (assoc env :system (ig/halt! system))))))
+
 (defn -main
   [& _]
-  (swap! state (partial restart-db env))
-  (swap! state (partial restart-http env)))
-
-#_((@state :service) {:request-method :get
-                      :uri            "/"})
+  (let [system (ig/init config)]
+    (reset! state (assoc env :system system))))
+#_(def create-address-table
+    "create table address (
+  id int auto_increment primary key,
+  name varchar(32),
+  email varchar(255))")
 #_(->  {:request-method :get
-        :uri            "/api/number"}
-       ((@state :service))
-       (update :body (comp #(json/parse-string % true) slurp)))
+        :uri            "/api/math"
+        #_#_:query-params {:x "1"
+                           :y "2"}}
+       ((@state :http/service))
+       #_(update :body (comp #(json/parse-string % true) slurp)))
 
+(stop! state)
 (-main)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; (pco/defresolver routes [{::keys [operations]}]                                                                 ;;
+;;                  {::pco/output [::routes]}                                                                      ;;
+;;                  (let [auth [(middlewares/session)                                                              ;;
+;;                              (csrf/anti-forgery {:read-token hiete/read-token})                                 ;;
+;;                              (body-params/body-params)]                                                         ;;
+;;                                                                                                                 ;;
+;;                        idx       (pci/register operations)                                                      ;;
+;;                        merge-env {:name  ::merge-env                                                            ;;
+;;                                   :enter (fn [ctx]                                                               ;;
+;;                                            (update ctx :request merge idx))}                                    ;;
+;;                        routes    #{["/" :get (conj auth merge-env hiete/render-hiccup ui-home)                  ;;
+;;                                     :route-name :conduit.page/home]                                             ;;
+;;                                    ["/editor" :get (conj auth merge-env hiete/render-hiccup ui-home)            ;;
+;;                                     :route-name :conduit.page/editor]                                           ;;
+;;                                    ["/settings" :get (conj auth merge-env hiete/render-hiccup ui-home)          ;;
+;;                                     :route-name :conduit.page/settings]                                         ;;
+;;                                    ["/register" :get (conj auth merge-env hiete/render-hiccup ui-register)      ;;
+;;                                     :route-name :conduit.page/register]                                         ;;
+;;                                    ["/login" :get (conj auth merge-env hiete/render-hiccup ui-login)            ;;
+;;                                     :route-name :conduit.page/login]                                            ;;
+;;                                    ["/article/:slug" :get (conj auth merge-env hiete/render-hiccup ui-home)     ;;
+;;                                     :route-name :conduit.page/article]                                          ;;
+;;                                    ["/profile/:username" :get (conj auth merge-env hiete/render-hiccup ui-home) ;;
+;;                                     :route-name :conduit.page/profile]                                          ;;
+;;                                    ["/api/*sym" :post (conj auth merge-env std-mutation)                        ;;
+;;                                     :route-name :conduit.api/mutation]}]                                        ;;
+;;                    {::routes routes}))                                                                          ;;
+;;                                                                                                                 ;;
+;; (pco/defresolver service [{::keys [operations]}]                                                                ;;
+;;                  {::pco/output [::service]}                                                                     ;;
+;;                  (let [routes (fn []                                                                             ;;
+;;                                 (-> (pci/register operations)                                                   ;;
+;;                                     (p.eql/process [::routes])                                                  ;;
+;;                                     ::routes                                                                    ;;
+;;                                     route/expand-routes))]                                                      ;;
+;;                    {::service (-> {::http/routes routes}                                                        ;;
+;;                                   http/default-interceptors                                                     ;;
+;;                                   http/dev-interceptors)}))                                                     ;;
+;; (defn -main                                                                                                     ;;
+;;   [& _]                                                                                                         ;;
+;;   (swap! state                                                                                                  ;;
+;;          (fn [st]                                                                                                ;;
+;;            (some-> st http/stop)                                                                                ;;
+;;            (-> (reset! -env (pci/register (operations)))                                                        ;;
+;;                (p.eql/process [::service])                                                                      ;;
+;;                ::service                                                                                        ;;
+;;                (assoc ::http/join? false                                                                        ;;
+;;                       ::http/port 8080                                                                          ;;
+;;                       ::http/type :jetty)                                                                       ;;
+;;                http/create-server                                                                               ;;
+;;                http/start))))                                                                                   ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
