@@ -77,14 +77,6 @@
    {:executor     reitit.interceptor.sieppari/executor}))
 
 
-(def env
-  {:port    3000
-   :join?   false
-   :service #'app
-   :server  nil
-   :dbtype "hsqldb"
-   :dbname "example"})
-
 (def config
   {::db {:dbtype "hsqldb"
          :dbname "example"}
@@ -119,12 +111,12 @@
   (swap! state
          (fn [{:keys [system] :as env}]
            (when system
-             (assoc env :system (ig/halt! system))))))
+             (assoc env ::system (ig/halt! system))))))
 
 (defn -main
   [& _]
   (let [system (ig/init config)]
-    (reset! state (assoc env :system system))))
+    (reset! state (assoc config ::system system))))
 #_(def create-address-table
     "create table address (
   id int auto_increment primary key,
@@ -137,8 +129,9 @@
        ((@state :http/service))
        #_(update :body (comp #(json/parse-string % true) slurp)))
 
-(stop! state)
-(-main)
+(comment
+  (stop! state)
+  (-main))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; (pco/defresolver routes [{::keys [operations]}]                                                                 ;;
 ;;                  {::pco/output [::routes]}                                                                      ;;
