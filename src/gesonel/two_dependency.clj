@@ -76,13 +76,20 @@
     (ring/create-default-handler))
    {:executor     reitit.interceptor.sieppari/executor}))
 
+
+(def db-conf
+  {:dbtype "hsqldb"
+   :dbname "example"})
+
+(def http-conf
+  {:database (ig/ref ::db)
+   :port 3000
+   :join? false
+   :service #'app})
+
 (def config
-  {::db {:dbtype "hsqldb"
-         :dbname "example"}
-   ::http {:handler (ig/ref ::db)
-           :port 3000
-           :join? false
-           :service #'app}})
+  {::db db-conf
+   ::http http-conf})
 
 (defmethod ig/init-key ::db
   [_ env]
