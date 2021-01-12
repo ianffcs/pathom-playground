@@ -92,16 +92,16 @@
            :connection (jdbc/get-connection ds))))
 
 (defmethod ig/halt-key! ::db
-  [this env]
+  [_ env]
   (some-> env :db/connection .close))
 
 (defmethod ig/init-key ::http
-  [this {:keys [service] :as env}]
+  [_ {:keys [service] :as env}]
   (assoc env
          :http/server (jetty/run-jetty service env)))
 
 (defmethod ig/halt-key! ::http
-  [this env]
+  [_ env]
   (some-> env :http/server .stop))
 
 (defonce state (atom nil))
