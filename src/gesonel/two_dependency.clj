@@ -109,7 +109,7 @@
 
 (defn stop! [state]
   (swap! state
-         (fn [{:keys [system] :as env}]
+         (fn [{::keys [system] :as env}]
            (when system
              (assoc env ::system (ig/halt! system))))))
 
