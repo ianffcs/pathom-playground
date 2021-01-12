@@ -123,71 +123,37 @@
   [& _]
   (let [system (ig/init config)]
     (reset! state (assoc config ::system system))))
-#_(def create-address-table
-    "create table address (
-  id int auto_increment primary key,
-  name varchar(32),
-  email varchar(255))")
-#_(->  {:request-method :get
-        :uri            "/api/math"
-        #_#_:query-params {:x "1"
-                           :y "2"}}
-       ((@state :http/service))
-       #_(update :body (comp #(json/parse-string % true) slurp)))
 
 (comment
   (stop! state)
   (-main))
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; (pco/defresolver routes [{::keys [operations]}]                                                                 ;;
-;;                  {::pco/output [::routes]}                                                                      ;;
-;;                  (let [auth [(middlewares/session)                                                              ;;
-;;                              (csrf/anti-forgery {:read-token hiete/read-token})                                 ;;
-;;                              (body-params/body-params)]                                                         ;;
-;;                                                                                                                 ;;
-;;                        idx       (pci/register operations)                                                      ;;
-;;                        merge-env {:name  ::merge-env                                                            ;;
-;;                                   :enter (fn [ctx]                                                               ;;
-;;                                            (update ctx :request merge idx))}                                    ;;
-;;                        routes    #{["/" :get (conj auth merge-env hiete/render-hiccup ui-home)                  ;;
-;;                                     :route-name :conduit.page/home]                                             ;;
-;;                                    ["/editor" :get (conj auth merge-env hiete/render-hiccup ui-home)            ;;
-;;                                     :route-name :conduit.page/editor]                                           ;;
-;;                                    ["/settings" :get (conj auth merge-env hiete/render-hiccup ui-home)          ;;
-;;                                     :route-name :conduit.page/settings]                                         ;;
-;;                                    ["/register" :get (conj auth merge-env hiete/render-hiccup ui-register)      ;;
-;;                                     :route-name :conduit.page/register]                                         ;;
-;;                                    ["/login" :get (conj auth merge-env hiete/render-hiccup ui-login)            ;;
-;;                                     :route-name :conduit.page/login]                                            ;;
-;;                                    ["/article/:slug" :get (conj auth merge-env hiete/render-hiccup ui-home)     ;;
-;;                                     :route-name :conduit.page/article]                                          ;;
-;;                                    ["/profile/:username" :get (conj auth merge-env hiete/render-hiccup ui-home) ;;
-;;                                     :route-name :conduit.page/profile]                                          ;;
-;;                                    ["/api/*sym" :post (conj auth merge-env std-mutation)                        ;;
-;;                                     :route-name :conduit.api/mutation]}]                                        ;;
-;;                    {::routes routes}))                                                                          ;;
-;;                                                                                                                 ;;
-;; (pco/defresolver service [{::keys [operations]}]                                                                ;;
-;;                  {::pco/output [::service]}                                                                     ;;
-;;                  (let [routes (fn []                                                                             ;;
-;;                                 (-> (pci/register operations)                                                   ;;
-;;                                     (p.eql/process [::routes])                                                  ;;
-;;                                     ::routes                                                                    ;;
-;;                                     route/expand-routes))]                                                      ;;
-;;                    {::service (-> {::http/routes routes}                                                        ;;
-;;                                   http/default-interceptors                                                     ;;
-;;                                   http/dev-interceptors)}))                                                     ;;
-;; (defn -main                                                                                                     ;;
-;;   [& _]                                                                                                         ;;
-;;   (swap! state                                                                                                  ;;
-;;          (fn [st]                                                                                                ;;
-;;            (some-> st http/stop)                                                                                ;;
-;;            (-> (reset! -env (pci/register (operations)))                                                        ;;
-;;                (p.eql/process [::service])                                                                      ;;
-;;                ::service                                                                                        ;;
-;;                (assoc ::http/join? false                                                                        ;;
-;;                       ::http/port 8080                                                                          ;;
-;;                       ::http/type :jetty)                                                                       ;;
-;;                http/create-server                                                                               ;;
-;;                http/start))))                                                                                   ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def create-address-table
+  "
+  create table address (
+  id integer GENERATED BY DEFAULT AS IDENTITY(START WITH 0, INCREMENT BY 1) primary key,
+  name varchar(32),
+  email varchar(255)
+  )")
+
+(def insert-address
+  "
+insert into address (name, email)
+values ('Ian','d.ian.b@live.com')
+")
+
+#_(jdbc/execute-one! (-> @state ::system ::db :connection) [create-address-table])
+#_(jdbc/execute-one!  (-> @state ::system ::db :connection) [insert-address])
+#_(jdbc/execute-one! (-> @state ::system ::db :datasource) ["SELECT * FROM address"])
+
+#_(-> {:request-method :get
+       :uri "/api/number"}
+      ((@state :http/service))
+      (update :body (comp #(json/parse-string % true) slurp)))
+
+#_(->  {:request-method :get
+        :uri            "/api/math"
+        :query-params {:x "1"
+                       :y "2"}}
+       ((@state :http/service))
+       (update :body (comp #(json/parse-string % true) slurp)))
