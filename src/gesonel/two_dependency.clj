@@ -76,7 +76,6 @@
     (ring/create-default-handler))
    {:executor     reitit.interceptor.sieppari/executor}))
 
-
 (def config
   {::db {:dbtype "hsqldb"
          :dbname "example"}
